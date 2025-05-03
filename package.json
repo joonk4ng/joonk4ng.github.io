@@ -1,0 +1,23 @@
+{
+  "name": "firefighter-shift-pwa",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port $PORT",
+    "start": "vite preview --host 0.0.0.0 --port $PORT"
+  },
+  "dependencies": {
+    "idb": "^7.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.14",
+    "@types/react-dom": "^18.2.7",
+    "typescript": "^5.0.0",
+    "vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.0.0"
+  }
+} 
