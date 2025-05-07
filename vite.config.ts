@@ -4,7 +4,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/joonk4ng.github.io/',
+  base: '/',
   server: {
     open: true,
   },
