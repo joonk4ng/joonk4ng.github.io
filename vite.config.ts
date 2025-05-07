@@ -26,5 +26,8 @@ export default defineConfig({
   publicDir: 'public',
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx']
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom']
   }
 });

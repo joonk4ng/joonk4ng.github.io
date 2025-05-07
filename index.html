@@ -4,22 +4,27 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#b71c1c" />
-    <meta name="description" content="A PWA for managing firefighter shifts and schedules" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="CSV Editor PWA" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <title>Firefighter Shift PWA</title>
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
+    <title>CSV Editor PWA</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Add error handling for failed script loads
-      window.addEventListener('error', function(e) {
-        if (e.target.tagName === 'SCRIPT') {
-          console.error('Script failed to load:', e.target.src);
-        }
-      }, true);
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('SW registered:', registration);
+            })
+            .catch(error => {
+              console.log('SW registration failed:', error);
+            });
+        });
+      }
     </script>
   </body>
 </html> 
