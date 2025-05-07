@@ -1,13 +1,13 @@
 const CACHE_NAME = 'firefighter-shift-v1';
 const urlsToCache = [
-  '/your-repo/',
-  '/your-repo/index.html',
-  '/your-repo/firefighters.csv',
-  '/your-repo/manifest.json',
-  '/your-repo/icons/icon-192.png',
-  '/your-repo/icons/icon-512.png',
-  '/your-repo/assets/index.js',
-  '/your-repo/assets/index.css'
+  '/',
+  '/index.html',
+  '/firefighters.csv',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/assets/index.js',
+  '/assets/index.css'
 ];
 
 self.addEventListener('install', event => {
