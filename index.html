@@ -12,20 +12,8 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch(err => {
-              console.error('ServiceWorker registration failed: ', err);
-            });
-        });
-      }
-
       // Add error handling for failed script loads
       window.addEventListener('error', function(e) {
         if (e.target.tagName === 'SCRIPT') {
