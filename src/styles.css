@@ -68,6 +68,7 @@ button:active {
 }
 
 .file-input {
+  margin-top: 10px;
   margin-bottom: 20px;
   padding: 10px;
   width: 100%;
@@ -105,6 +106,74 @@ p {
   text-align: center;
   color: #666;
   font-style: italic;
+}
+
+.csv-container input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.csv-container span {
+  cursor: pointer;
+  padding: 8px;
+  display: block;
+}
+
+.csv-container span:hover {
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
+.csv-container td button {
+  margin: 0 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.csv-container button[onClick] {
+  margin-top: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #4CAF50;
+}
+
+.csv-container button[onClick]:hover {
+  background-color: #45a049;
+}
+
+.csv-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.csv-actions button {
+  flex: 1;
+}
+
+.empty-slot {
+  background-color: #f8f8f8;
+}
+
+.empty-slot span {
+  color: #999;
+  font-style: italic;
+}
+
+.csv-header {
+  margin-bottom: 20px;
+}
+
+.toggle-upload {
+  background-color: #2196F3;
+  margin-bottom: 10px;
+}
+
+.toggle-upload:hover {
+  background-color: #1976D2;
 }
 
 @media print {
