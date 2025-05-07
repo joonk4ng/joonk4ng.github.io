@@ -1,4 +1,19 @@
 const CACHE_NAME = 'csv-editor-v1';
+
+// Define MIME types for different file extensions
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.ts': 'application/javascript',
+  '.tsx': 'application/javascript',
+  '.json': 'application/json',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon'
+};
+
 const urlsToCache = [
   '/',
   '/index.html',
@@ -60,13 +75,15 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
   console.log('Fetching:', event.request.url);
   
   // Handle navigation requests
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match('/index.html')
-        .then(response => {
+        .then((response) => {
           if (response) {
             console.log('Serving index.html from cache');
             return response;
@@ -104,23 +121,34 @@ self.addEventListener('fetch', (event) => {
         
         return fetch(event.request)
           .then((response) => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+            if (!response || response.status !== 200) {
               return response;
             }
 
             // Clone the response
             const responseToCache = response.clone();
 
-            // Open the cache
+            // Get the file extension
+            const extension = url.pathname.split('.').pop();
+            const mimeType = MIME_TYPES[`.${extension}`] || response.headers.get('content-type');
+
+            // Create a new response with the correct MIME type
+            const modifiedResponse = new Response(responseToCache.body, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: new Headers({
+                'Content-Type': mimeType || 'text/plain',
+                'Cache-Control': 'public, max-age=31536000'
+              })
+            });
+
+            // Cache the modified response
             caches.open(CACHE_NAME)
               .then((cache) => {
-                // Add the response to the cache
-                cache.put(event.request, responseToCache);
-                console.log('Cached new resource:', event.request.url);
+                cache.put(event.request, modifiedResponse);
               });
 
-            return response;
+            return modifiedResponse;
           })
           .catch(error => {
             console.error('Fetch failed:', error);
