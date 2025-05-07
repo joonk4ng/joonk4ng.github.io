@@ -7,8 +7,8 @@ const urlsToCache = [
   BASE_PATH + 'manifest.json',
   BASE_PATH + 'icons/icon-192.png',
   BASE_PATH + 'icons/icon-512.png',
-  BASE_PATH + 'assets/index.css',
-  BASE_PATH + 'assets/index.js'
+  BASE_PATH + 'assets/main.js',
+  BASE_PATH + 'assets/index.css'
 ];
 
 // Log all URLs we're trying to cache
