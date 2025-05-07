@@ -25,10 +25,20 @@ const CSVDisplay: React.FC = () => {
         isEmpty: !row.trim()
       }));
     setCSVData(data);
+    // Save to localStorage
+    localStorage.setItem('csvData', JSON.stringify(data));
   };
 
   const loadDefaultCSV = async () => {
     try {
+      // First try to load from localStorage
+      const savedData = localStorage.getItem('csvData');
+      if (savedData) {
+        setCSVData(JSON.parse(savedData));
+        return;
+      }
+
+      // If no localStorage data, load from CSV file
       const response = await fetch('/firefighters.csv');
       const text = await response.text();
       processCSVContent(text);
@@ -63,6 +73,8 @@ const CSVDisplay: React.FC = () => {
     newData[index] = { name: editValue, isEmpty: false };
     setCSVData(newData);
     setEditingIndex(null);
+    // Save to localStorage
+    localStorage.setItem('csvData', JSON.stringify(newData));
   };
 
   const handleCancel = () => {
@@ -73,6 +85,8 @@ const CSVDisplay: React.FC = () => {
     const newData = [...csvData];
     newData[index] = { name: '', isEmpty: true };
     setCSVData(newData);
+    // Save to localStorage
+    localStorage.setItem('csvData', JSON.stringify(newData));
   };
 
   const handleAddNew = () => {
@@ -84,6 +98,8 @@ const CSVDisplay: React.FC = () => {
       const newData = [...csvData, { name: '', isEmpty: true }];
       setCSVData(newData);
       handleEdit(newData.length - 1);
+      // Save to localStorage
+      localStorage.setItem('csvData', JSON.stringify(newData));
     }
   };
 
@@ -124,6 +140,13 @@ const CSVDisplay: React.FC = () => {
     doc.save('firefighter_shifts.pdf');
   };
 
+  const handleReset = () => {
+    if (window.confirm('Are you sure you want to reset to the original CSV file? This will clear all your changes.')) {
+      localStorage.removeItem('csvData');
+      loadDefaultCSV();
+    }
+  };
+
   return (
     <div className="csv-container">
       <div className="csv-header">
@@ -149,6 +172,7 @@ const CSVDisplay: React.FC = () => {
               <button onClick={handleAddNew}>Add New Entry</button>
               <button onClick={handleDownload}>Download Updated CSV</button>
               <button onClick={handleExportPDF}>Export as PDF</button>
+              <button onClick={handleReset} className="reset-button">Reset to Original</button>
             </div>
             <table>
               <thead>
