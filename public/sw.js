@@ -1,5 +1,5 @@
 const CACHE_NAME = 'firefighter-shift-v1';
-const BASE_PATH = '/pwapoc/'; // Add your repository name here
+const BASE_PATH = '/'; // Updated for username.github.io
 const urlsToCache = [
   BASE_PATH,
   BASE_PATH + 'index.html',
@@ -42,6 +42,19 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   console.log('Service Worker activating...');
+  // Clean up old caches
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
 });
 
 self.addEventListener('fetch', event => {
