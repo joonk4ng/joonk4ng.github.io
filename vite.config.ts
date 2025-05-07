@@ -21,13 +21,14 @@ export default defineConfig({
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js'
       }
-    }
+    },
+    sourcemap: true
   },
   publicDir: 'public',
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom']
+    include: ['react', 'react-dom', 'jspdf']
   }
 });

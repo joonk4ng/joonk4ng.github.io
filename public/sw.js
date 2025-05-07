@@ -11,7 +11,8 @@ const MIME_TYPES = {
   '.css': 'text/css',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.map': 'application/json'
 };
 
 const urlsToCache = [
