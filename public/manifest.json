@@ -1,16 +1,16 @@
 {
-  "short_name": "ShiftClock",
-  "name": "Firefighter Shift Clock",
-  "description": "A PWA for managing firefighter shifts and schedules",
+  "short_name": "CSV Editor",
+  "name": "CSV Editor PWA",
+  "description": "A PWA for editing CSV files",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/icons/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/icons/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
@@ -18,8 +18,8 @@
   ],
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#b71c1c",
-  "theme_color": "#b71c1c",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait",
   "scope": "/",
   "prefer_related_applications": false
