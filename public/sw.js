@@ -1,4 +1,6 @@
 const CACHE_NAME = 'csv-editor-v1';
+const STATIC_CACHE = 'static-v1';
+const DYNAMIC_CACHE = 'dynamic-v1';
 
 // Define MIME types for different file extensions
 const MIME_TYPES = {
@@ -12,98 +14,119 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
-  '.map': 'application/json'
+  '.map': 'application/json',
+  '.pdf': 'application/pdf',
+  '.csv': 'text/csv'
 };
 
-const urlsToCache = [
+// Critical assets that should be cached immediately
+const CRITICAL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/vite.svg'
+  '/assets/index.css',
+  '/assets/main.js',
+  '/firefighters.csv'  // Add CSV file to critical assets
 ];
 
-// Log all URLs we're trying to cache
-console.log('Attempting to cache URLs:', urlsToCache);
+// Static assets that can be cached on demand
+const STATIC_ASSETS = [
+  '/vite.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
+];
 
-self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
-  // Skip waiting to activate the new service worker immediately
-  self.skipWaiting();
-  
+// Install event - cache critical assets
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Cache opened successfully');
-        return cache.addAll(urlsToCache);
+    Promise.all([
+      // Cache critical assets immediately
+      caches.open(STATIC_CACHE).then(cache => {
+        console.log('Caching critical assets...');
+        return cache.addAll(CRITICAL_ASSETS);
+      }),
+      // Cache static assets in the background
+      caches.open(DYNAMIC_CACHE).then(cache => {
+        console.log('Caching static assets...');
+        return cache.addAll(STATIC_ASSETS);
       })
-      .then(() => {
-        console.log('All URLs cached successfully');
-      })
-      .catch(error => {
-        console.error('Error caching URLs:', error);
-        // Log which URLs failed
-        urlsToCache.forEach(url => {
-          caches.match(url).catch(() => {
-            console.error('Failed to cache:', url);
-          });
-        });
-      })
+    ])
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
-  // Claim clients to ensure the service worker controls all pages
+// Activate event - clean up old caches
+self.addEventListener('activate', event => {
   event.waitUntil(
     Promise.all([
       // Clean up old caches
-      caches.keys().then((cacheNames) => {
+      caches.keys().then(cacheNames => {
         return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
+          cacheNames.map(cacheName => {
+            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
               console.log('Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       }),
-      // Take control of all clients
+      // Claim clients to ensure the new service worker takes control
       clients.claim()
     ])
   );
 });
 
-self.addEventListener('fetch', (event) => {
+// Fetch event - handle requests
+self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  
-  console.log('Fetching:', event.request.url);
-  
+  const extension = url.pathname.split('.').pop();
+  const mimeType = MIME_TYPES['.' + extension] || 'text/plain';
+
   // Handle navigation requests
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match('/index.html')
-        .then((response) => {
+        .then(response => response || fetch(event.request))
+    );
+    return;
+  }
+
+  // Handle CSV file requests
+  if (url.pathname.endsWith('.csv')) {
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
           if (response) {
-            console.log('Serving index.html from cache');
-            return response;
+            // Return cached CSV with correct MIME type
+            return new Response(response.body, {
+              headers: {
+                'Content-Type': 'text/csv',
+                ...response.headers
+              }
+            });
           }
+          // If not in cache, fetch from network
           return fetch(event.request)
-            .then(response => {
-              if (!response || response.status !== 200) {
+            .then(networkResponse => {
+              if (!networkResponse || networkResponse.status !== 200) {
                 throw new Error('Network response was not ok');
               }
-              const responseToCache = response.clone();
-              caches.open(CACHE_NAME)
+              // Cache the CSV file
+              const responseToCache = networkResponse.clone();
+              caches.open(STATIC_CACHE)
                 .then(cache => {
-                  cache.put('/index.html', responseToCache);
+                  cache.put(event.request, responseToCache);
                 });
-              return response;
+              return new Response(networkResponse.body, {
+                headers: {
+                  'Content-Type': 'text/csv',
+                  ...networkResponse.headers
+                }
+              });
             })
-            .catch(() => {
-              // If both cache and network fail, return a fallback
-              return caches.match('/index.html');
+            .catch(error => {
+              console.error('Fetch failed:', error);
+              throw error;
             });
         })
     );
@@ -113,59 +136,40 @@ self.addEventListener('fetch', (event) => {
   // Handle other requests
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
+      .then(response => {
         if (response) {
-          console.log('Cache hit for:', event.request.url);
-          return response;
-        }
-        console.log('Cache miss for:', event.request.url);
-        
-        return fetch(event.request)
-          .then((response) => {
-            if (!response || response.status !== 200) {
-              return response;
+          // Return cached response with correct MIME type
+          return new Response(response.body, {
+            headers: {
+              'Content-Type': mimeType,
+              ...response.headers
             }
+          });
+        }
 
-            // Clone the response
-            const responseToCache = response.clone();
+        // Fetch from network
+        return fetch(event.request)
+          .then(networkResponse => {
+            // Clone the response before caching
+            const responseToCache = networkResponse.clone();
 
-            // Get the file extension
-            const extension = url.pathname.split('.').pop();
-            const mimeType = MIME_TYPES[`.${extension}`] || response.headers.get('content-type');
-
-            // Create a new response with the correct MIME type
-            const modifiedResponse = new Response(responseToCache.body, {
-              status: response.status,
-              statusText: response.statusText,
-              headers: new Headers({
-                'Content-Type': mimeType || 'text/plain',
-                'Cache-Control': 'public, max-age=31536000'
-              })
-            });
-
-            // Cache the modified response
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, modifiedResponse);
+            // Cache the response
+            caches.open(DYNAMIC_CACHE)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
               });
 
-            return modifiedResponse;
+            // Return response with correct MIME type
+            return new Response(networkResponse.body, {
+              headers: {
+                'Content-Type': mimeType,
+                ...networkResponse.headers
+              }
+            });
           })
           .catch(error => {
             console.error('Fetch failed:', error);
-            // Return cached response if available, otherwise return error
-            return caches.match(event.request)
-              .then(cachedResponse => {
-                if (cachedResponse) {
-                  return cachedResponse;
-                }
-                return new Response('Network error occurred', {
-                  status: 408,
-                  headers: new Headers({
-                    'Content-Type': 'text/plain'
-                  })
-                });
-              });
+            throw error;
           });
       })
   );
