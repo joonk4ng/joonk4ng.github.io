@@ -1,26 +1,15 @@
 {
-  "short_name": "CSV Editor",
-  "name": "CSV Editor PWA",
-  "description": "A PWA for editing CSV files",
+  "short_name": "CTR",
+  "name": "Crew Time Report",
   "icons": [
     {
-      "src": "icons/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
+      "src": "logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "orientation": "portrait",
-  "scope": ".",
-  "prefer_related_applications": false
+  "theme_color": "#4a90e2",
+  "background_color": "#ffffff"
 } 
