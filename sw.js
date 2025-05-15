@@ -31,7 +31,8 @@ const CRITICAL_ASSETS = [
   '/src/components/MainTable.tsx',
   '/src/components/MainTable.css',
   '/src/data/defaultData.ts',
-  '/CTR_Fillable.pdf'
+  '/CTR_Fillable.pdf',
+  '/CTR_Template.xlsx'
 ];
 
 // Static assets that can be cached on demand
