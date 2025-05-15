@@ -1,9 +1,12 @@
+// Code for handling storage in IndexedDB
 import { openDB } from 'idb';
 
+// define constraints for database
 const DB_NAME = 'pwapoc-db';
 const EVENTS_STORE = 'events';
 const CSV_STORE = 'csv_data';
 
+// 
 export interface CSVEntry {
   id?: number;
   name: string;
@@ -11,6 +14,7 @@ export interface CSVEntry {
   lastModified: number;
 }
 
+// creates IndexedDB with version 1
 async function getDb() {
   return openDB(DB_NAME, 1, {
     upgrade(db) {

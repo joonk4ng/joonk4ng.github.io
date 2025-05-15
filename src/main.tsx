@@ -13,6 +13,7 @@ if ('serviceWorker' in navigator) {
       })
       .catch(error => {
         console.error('Service Worker registration failed:', error);
+        // Don't throw the error, just log it
       });
   });
 } else {

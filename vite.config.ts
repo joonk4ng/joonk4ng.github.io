@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 // enables support for URL and path utilities
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+import compression from 'vite-plugin-compression';
 // defines varaibles for determining current file location
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,12 +13,38 @@ const __dirname = dirname(__filename);
 // export Vite config object
 export default defineConfig({
   // specifies to use react plug to enable JSX support and other optimizations
-  plugins: [react()],
+  plugins: [
+    react(),
+    compression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      deleteOriginFile: false,
+      threshold: 10240, // Only compress files larger than 10kb
+      compressionOptions: {
+        level: 9, // Maximum compression
+      },
+      filter: /\.(js|css|html|svg|json|txt)$/i,
+    }),
+    compression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      deleteOriginFile: false,
+      threshold: 10240,
+      compressionOptions: {
+        level: 11, // Maximum compression
+      },
+      filter: /\.(js|css|html|svg|json|txt)$/i,
+    }),
+  ],
   // sets base public path for app - from root path
-  base: '/',
+  base: './',
   // configures development server
   server: {
     open: true,
+    headers: {
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Vary': 'Accept-Encoding',
+    },
   },
   build: {
     // specifies output directory for build files
@@ -32,28 +59,35 @@ export default defineConfig({
       },
       output: {
         // disables manual chunking
-        manualChunks: undefined,
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          utils: ['xlsx', 'pdf-lib'],
+        },
         //naming convention for asset files
         assetFileNames: (assetInfo) => {
-          const name = assetInfo.name || '';
-          // specifies that PDFs should retain their original names in assets directory
-          if (name.endsWith('.pdf')) {
+          if (process.env.NODE_ENV === 'development') {
             return 'assets/[name][extname]';
           }
-          // specifies that CSS files should retain their original names in assets directory
-          if (name.endsWith('.css')) {
-            return 'assets/[name][extname]';
-          }
-          // applies hashed naming convention to all other assets
           return 'assets/[name]-[hash][extname]';
         },
         // sets naming for chunks and entry points
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js'
-      }
+        chunkFileNames: (chunkInfo) => {
+          if (process.env.NODE_ENV === 'development') {
+            return 'assets/[name].js';
+          }
+          return 'assets/[name]-[hash].js';
+        },
+        entryFileNames: (chunkInfo) => {
+          if (process.env.NODE_ENV === 'development') {
+            return 'assets/[name].js';
+          }
+          return 'assets/[name]-[hash].js';
+        }
+      },
     },
     // enables source map generation and debugs minified production code by mapping it back to source
-    sourcemap: true
+    sourcemap: true,
+    chunkSizeWarningLimit: 1000,
   },
   // specifies directory for static assets
   publicDir: 'public',
@@ -63,7 +97,7 @@ export default defineConfig({
   },
   // configures dependency pre-bundling for improved performance
   optimizeDeps: {
-    include: ['react', 'react-dom', 'jspdf']
+    include: ['react', 'react-dom', 'jspdf', 'xlsx']
   },
   // CSS handling configuration 
   css: {
