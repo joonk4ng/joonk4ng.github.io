@@ -1,6 +1,6 @@
-const CACHE_NAME = 'csv-editor-v1';
-const STATIC_CACHE = 'static-v1';
-const DYNAMIC_CACHE = 'dynamic-v1';
+const CACHE_NAME = 'csv-editor-v3';
+const STATIC_CACHE = 'static-v3';
+const DYNAMIC_CACHE = 'dynamic-v3';
 
 // Define MIME types for different file extensions
 const MIME_TYPES = {
@@ -16,7 +16,8 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
   '.map': 'application/json',
   '.pdf': 'application/pdf',
-  '.csv': 'text/csv'
+  '.csv': 'text/csv',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 };
 
 // Critical assets that should be cached immediately
@@ -26,7 +27,11 @@ const CRITICAL_ASSETS = [
   '/manifest.json',
   '/assets/index.css',
   '/assets/main.js',
-  '/firefighters.csv'  // Add CSV file to critical assets
+  '/assets/main-*.js',
+  '/src/components/MainTable.tsx',
+  '/src/components/MainTable.css',
+  '/src/data/defaultData.ts',
+  '/CTR_Fillable.pdf'
 ];
 
 // Static assets that can be cached on demand
@@ -43,7 +48,7 @@ self.addEventListener('install', event => {
       // Cache critical assets immediately
       caches.open(STATIC_CACHE).then(cache => {
         console.log('Caching critical assets...');
-        return cache.addAll(CRITICAL_ASSETS);
+        return cache.addAll(CRITICAL_ASSETS.filter(asset => !asset.includes('*')));
       }),
       // Cache static assets in the background
       caches.open(DYNAMIC_CACHE).then(cache => {
@@ -76,6 +81,16 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Helper function to match request against a pattern with wildcards
+function matchPattern(pattern, url) {
+  const regexPattern = pattern
+    .replace(/\./g, '\\.')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\//g, '\\/');
+  const regex = new RegExp(`^${regexPattern}$`);
+  return regex.test(url);
+}
+
 // Fetch event - handle requests
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
@@ -91,27 +106,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Handle CSV file requests
-  if (url.pathname.endsWith('.csv')) {
+  // Handle CSV and Excel file requests
+  if (url.pathname.endsWith('.csv') || url.pathname.endsWith('.xlsx')) {
     event.respondWith(
       caches.match(event.request)
         .then(response => {
           if (response) {
-            // Return cached CSV with correct MIME type
             return new Response(response.body, {
               headers: {
-                'Content-Type': 'text/csv',
+                'Content-Type': mimeType,
                 ...response.headers
               }
             });
           }
-          // If not in cache, fetch from network
           return fetch(event.request)
             .then(networkResponse => {
               if (!networkResponse || networkResponse.status !== 200) {
                 throw new Error('Network response was not ok');
               }
-              // Cache the CSV file
               const responseToCache = networkResponse.clone();
               caches.open(STATIC_CACHE)
                 .then(cache => {
@@ -119,7 +131,7 @@ self.addEventListener('fetch', event => {
                 });
               return new Response(networkResponse.body, {
                 headers: {
-                  'Content-Type': 'text/csv',
+                  'Content-Type': mimeType,
                   ...networkResponse.headers
                 }
               });
@@ -136,9 +148,9 @@ self.addEventListener('fetch', event => {
   // Handle other requests
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
+      .then(async response => {
+        // If exact match found, return it
         if (response) {
-          // Return cached response with correct MIME type
           return new Response(response.body, {
             headers: {
               'Content-Type': mimeType,
@@ -147,19 +159,34 @@ self.addEventListener('fetch', event => {
           });
         }
 
-        // Fetch from network
+        // Check for pattern matches (e.g., hashed filenames)
+        const cache = await caches.open(STATIC_CACHE);
+        const keys = await cache.keys();
+        const patternMatch = keys.find(key => {
+          const patterns = CRITICAL_ASSETS.filter(asset => asset.includes('*'));
+          return patterns.some(pattern => matchPattern(pattern, key.url));
+        });
+
+        if (patternMatch) {
+          const patternResponse = await cache.match(patternMatch);
+          if (patternResponse) {
+            return new Response(patternResponse.body, {
+              headers: {
+                'Content-Type': mimeType,
+                ...patternResponse.headers
+              }
+            });
+          }
+        }
+
+        // Fetch from network if no cache match
         return fetch(event.request)
           .then(networkResponse => {
-            // Clone the response before caching
             const responseToCache = networkResponse.clone();
-
-            // Cache the response
             caches.open(DYNAMIC_CACHE)
               .then(cache => {
                 cache.put(event.request, responseToCache);
               });
-
-            // Return response with correct MIME type
             return new Response(networkResponse.body, {
               headers: {
                 'Content-Type': mimeType,
