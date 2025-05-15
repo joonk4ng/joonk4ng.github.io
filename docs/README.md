@@ -39,7 +39,7 @@ This allows for auto-filled PDFs and Excel spreadsheets to allow rapid printing 
    - Export data in various formats as needed
 
 3. **Exporting Data**
-   - Select the desired export format (PDF/Excel)
+   - Select the desired export format (PDF/Excel - PDF and Excel Templates provided with mapping)
    - Choose the data to include in the export
    - Generate and download the formatted document
 
@@ -48,7 +48,6 @@ This allows for auto-filled PDFs and Excel spreadsheets to allow rapid printing 
   - TypeScript
   - HTML5
   - CSS3
-  - Progressive Web App (PWA) features
 
 - **Backend**
   - Node.js
@@ -69,11 +68,8 @@ This allows for auto-filled PDFs and Excel spreadsheets to allow rapid printing 
 4. Push to the branch
 5. Create a Pull Request
 
-## License
-[Add appropriate license information]
-
 ## Support
-For support and questions, please [add contact information or issue reporting guidelines]
+For support and questions, please contact me at joonhyungkang1@gmail.com
 
 ## Roadmap
 - [ ] Add specific features planned for future development
