@@ -1,204 +1,126 @@
-const CACHE_NAME = 'csv-editor-v3';
-const STATIC_CACHE = 'static-v3';
-const DYNAMIC_CACHE = 'dynamic-v3';
+const CACHE_NAME = 'pwa-pdf-cache-v2';
+const urlsToCache = [
+  './',
+  './index.html',
+  './manifest.json'
+];
 
-// Define MIME types for different file extensions
-const MIME_TYPES = {
-  '.html': 'text/html',
-  '.js': 'application/javascript',
-  '.mjs': 'application/javascript',
-  '.ts': 'application/javascript',
-  '.tsx': 'application/javascript',
-  '.json': 'application/json',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-  '.map': 'application/json',
-  '.pdf': 'application/pdf',
-  '.csv': 'text/csv',
-  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+// Helper function to handle failed requests
+const handleFetchError = (error) => {
+  console.error('Fetch failed:', error);
+  return new Response(
+    JSON.stringify({
+      error: 'Network request failed',
+      message: 'The application is currently offline'
+    }),
+    {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  );
 };
 
-// Critical assets that should be cached immediately
-const CRITICAL_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/assets/index.css',
-  '/assets/main.js',
-  '/assets/main-*.js',
-  '/src/components/MainTable.tsx',
-  '/src/components/MainTable.css',
-  '/src/data/defaultData.ts',
-  '/CTR_Fillable.pdf',
-  '/CTR_Template.xlsx'
-];
+// Helper function to determine if a request should be cached
+const shouldCache = (request) => {
+  const url = new URL(request.url);
+  // Don't cache WebSocket connections
+  if (url.protocol === 'ws:' || url.protocol === 'wss:') {
+    return false;
+  }
+  // Don't cache browser-sync requests
+  if (url.pathname.includes('browser-sync')) {
+    return false;
+  }
+  // Don't cache PDF files
+  if (url.pathname.endsWith('.pdf')) {
+    return false;
+  }
+  return true;
+};
 
-// Static assets that can be cached on demand
-const STATIC_ASSETS = [
-  '/vite.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
-];
-
-// Install event - cache critical assets
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
+  // Skip waiting only if this is the first install
   event.waitUntil(
-    Promise.all([
-      // Cache critical assets immediately
-      caches.open(STATIC_CACHE).then(cache => {
-        console.log('Caching critical assets...');
-        return cache.addAll(CRITICAL_ASSETS.filter(asset => !asset.includes('*')));
-      }),
-      // Cache static assets in the background
-      caches.open(DYNAMIC_CACHE).then(cache => {
-        console.log('Caching static assets...');
-        return cache.addAll(STATIC_ASSETS);
-      })
-    ])
+    caches.keys().then(cacheNames => {
+      if (cacheNames.length === 0) {
+        self.skipWaiting();
+      }
+      return caches.open(CACHE_NAME)
+        .then((cache) => {
+          console.log('Opened cache');
+          return Promise.allSettled(
+            urlsToCache.map(url => 
+              cache.add(url).catch(error => {
+                console.error(`Failed to cache ${url}:`, error);
+                return Promise.resolve();
+              })
+            )
+          );
+        });
+    })
   );
-  self.skipWaiting();
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', event => {
+self.addEventListener('fetch', (event) => {
+  // Don't handle non-GET requests or WebSocket connections
+  if (event.request.method !== 'GET' || !shouldCache(event.request)) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        if (response) {
+          return response;
+        }
+
+        return fetch(event.request.clone())
+          .then(response => {
+            // Check if we received a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // Clone the response
+            const responseToCache = response.clone();
+
+            if (shouldCache(event.request)) {
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(event.request, responseToCache);
+                })
+                .catch(error => {
+                  console.error('Failed to cache response:', error);
+                });
+            }
+
+            return response;
+          })
+          .catch(handleFetchError);
+      })
+  );
+});
+
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    Promise.all([
-      // Clean up old caches
-      caches.keys().then(cacheNames => {
+    caches.keys()
+      .then((cacheNames) => {
         return Promise.all(
-          cacheNames.map(cacheName => {
-            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
               console.log('Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
-      }),
-      // Claim clients to ensure the new service worker takes control
-      clients.claim()
-    ])
-  );
-});
-
-// Helper function to match request against a pattern with wildcards
-function matchPattern(pattern, url) {
-  const regexPattern = pattern
-    .replace(/\./g, '\\.')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\//g, '\\/');
-  const regex = new RegExp(`^${regexPattern}$`);
-  return regex.test(url);
-}
-
-// Fetch event - handle requests
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-  const extension = url.pathname.split('.').pop();
-  const mimeType = MIME_TYPES['.' + extension] || 'text/plain';
-
-  // Handle navigation requests
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      caches.match('/index.html')
-        .then(response => response || fetch(event.request))
-    );
-    return;
-  }
-
-  // Handle CSV and Excel file requests
-  if (url.pathname.endsWith('.csv') || url.pathname.endsWith('.xlsx')) {
-    event.respondWith(
-      caches.match(event.request)
-        .then(response => {
-          if (response) {
-            return new Response(response.body, {
-              headers: {
-                'Content-Type': mimeType,
-                ...response.headers
-              }
-            });
+      })
+      .then(() => {
+        // Only claim clients if there are no other active service workers
+        return self.clients.matchAll().then(clients => {
+          if (clients.length === 0) {
+            return self.clients.claim();
           }
-          return fetch(event.request)
-            .then(networkResponse => {
-              if (!networkResponse || networkResponse.status !== 200) {
-                throw new Error('Network response was not ok');
-              }
-              const responseToCache = networkResponse.clone();
-              caches.open(STATIC_CACHE)
-                .then(cache => {
-                  cache.put(event.request, responseToCache);
-                });
-              return new Response(networkResponse.body, {
-                headers: {
-                  'Content-Type': mimeType,
-                  ...networkResponse.headers
-                }
-              });
-            })
-            .catch(error => {
-              console.error('Fetch failed:', error);
-              throw error;
-            });
-        })
-    );
-    return;
-  }
-
-  // Handle other requests
-  event.respondWith(
-    caches.match(event.request)
-      .then(async response => {
-        // If exact match found, return it
-        if (response) {
-          return new Response(response.body, {
-            headers: {
-              'Content-Type': mimeType,
-              ...response.headers
-            }
-          });
-        }
-
-        // Check for pattern matches (e.g., hashed filenames)
-        const cache = await caches.open(STATIC_CACHE);
-        const keys = await cache.keys();
-        const patternMatch = keys.find(key => {
-          const patterns = CRITICAL_ASSETS.filter(asset => asset.includes('*'));
-          return patterns.some(pattern => matchPattern(pattern, key.url));
         });
-
-        if (patternMatch) {
-          const patternResponse = await cache.match(patternMatch);
-          if (patternResponse) {
-            return new Response(patternResponse.body, {
-              headers: {
-                'Content-Type': mimeType,
-                ...patternResponse.headers
-              }
-            });
-          }
-        }
-
-        // Fetch from network if no cache match
-        return fetch(event.request)
-          .then(networkResponse => {
-            const responseToCache = networkResponse.clone();
-            caches.open(DYNAMIC_CACHE)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-            return new Response(networkResponse.body, {
-              headers: {
-                'Content-Type': mimeType,
-                ...networkResponse.headers
-              }
-            });
-          })
-          .catch(error => {
-            console.error('Fetch failed:', error);
-            throw error;
-          });
       })
   );
 }); 
