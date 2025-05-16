@@ -1,3 +1,5 @@
+// Store function to generate formatted filenames
+// Initialize ExportInfo object
 interface ExportInfo {
   date: string;
   crewNumber: string;

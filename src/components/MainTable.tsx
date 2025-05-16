@@ -11,6 +11,7 @@ import { mapExcelToData } from '../utils/excelMapping';
 import { CrewMember, CrewInfo, Day } from '../types/CTRTypes';
 import { calculateTotalHours } from '../utils/timeCalculations';
 import { DateCalendar } from './DateCalendar';
+import StoredPDFs from './StoredPDFs';
 
 // TypeScript interfaces
 interface EditingCell {
@@ -896,7 +897,7 @@ export default function MainTable() {
           <thead>
             <tr>
               <th className="ctr-th name" rowSpan={2}>NAME</th>
-              <th className="ctr-th" rowSpan={2}>CLASS</th>
+              <th className="ctr-th class" rowSpan={2}>CLASS</th>
               {days.map((date, i) => (
                 <th className="ctr-th date" colSpan={2} key={i} style={{ textAlign: 'center' }}>
                   DATE<br />
@@ -1070,6 +1071,9 @@ export default function MainTable() {
           />
         </div>
       )}
+
+      {/* Add StoredPDFs component */}
+      <StoredPDFs />
     </div>
   );
 }

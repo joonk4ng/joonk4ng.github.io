@@ -77,6 +77,10 @@
   text-align: center;
 }
 
+.ctr-th.class {
+  text-align: center;
+}
+
 .ctr-td {
   padding: 8px;
   border: 1px solid #ddd;

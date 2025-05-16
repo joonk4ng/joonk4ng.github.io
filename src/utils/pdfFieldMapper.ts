@@ -1,4 +1,4 @@
-// Maps table data to PDF field names as found in pdf_fields.csv
+// Maps table data to PDF field names as extracted from pdf_fields.csv
 export function mapToPDFFields(data: any[], crewInfo?: any, signature?: { name: string; signature: string }) {
   const fields: Record<string, string> = {};
   

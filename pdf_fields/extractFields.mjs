@@ -28,7 +28,7 @@ async function extractFieldNamesToCSV(url, outputCsvPath) {
   console.log(`Field names exported to ${outputCsvPath}`);
 }
 
-const ctrPdfUrl = 'https://gacc.nifc.gov/gbcc/dispatch/ut-cdc/business/docs/CTR_Fillable.pdf';
+const ctrPdfUrl = 'https://gacc.nifc.gov/gbcc/dispatch/ut-cdc/business/docs/CTR_Fillable_Edited.pdf';
 const outputPath = './pdf_fields.csv';
 
 extractFieldNamesToCSV(ctrPdfUrl, outputPath);

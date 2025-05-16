@@ -14,7 +14,9 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   // specifies to use react plug to enable JSX support and other optimizations
   plugins: [
-    react(),
+    react({
+      jsxRuntime: 'automatic',
+    }),
     compression({
       algorithm: 'gzip',
       ext: '.gz',
@@ -61,7 +63,7 @@ export default defineConfig({
         // disables manual chunking
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          utils: ['xlsx', 'pdf-lib'],
+          utils: ['xlsx', 'pdf-lib']
         },
         //naming convention for asset files
         assetFileNames: (assetInfo) => {
@@ -93,11 +95,15 @@ export default defineConfig({
   publicDir: 'public',
   // configures how Vite resolves module imports
   resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx']
+    extensions: ['.js', '.jsx', '.ts', '.tsx'],
+    alias: {
+      'react': resolve(__dirname, 'node_modules/react'),
+      'react-dom': resolve(__dirname, 'node_modules/react-dom'),
+    },
   },
   // configures dependency pre-bundling for improved performance
   optimizeDeps: {
-    include: ['react', 'react-dom', 'jspdf', 'xlsx']
+    include: ['react', 'react-dom'],
   },
   // CSS handling configuration 
   css: {

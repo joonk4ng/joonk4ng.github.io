@@ -1,13 +1,19 @@
 import { PDFDocument } from 'pdf-lib';
 import { mapToPDFFields } from './pdfFieldMapper';
 import { generateExportFilename } from './filenameGenerator';
+import { storePDF } from './pdfStorage';
 
 // Fills the CTR PDF and triggers a download
-export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fillable.pdf') {
+export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fillable_Edited.pdf') {
   try {
-    // Try to fetch from cache first, then network
-    const response = await fetch(pdfUrl, {
-      cache: 'force-cache' // This will try to use the cached version first
+    // Add cache-busting query parameter and force network fetch
+    const urlWithCacheBust = `${pdfUrl}?t=${Date.now()}`;
+    const response = await fetch(urlWithCacheBust, {
+      cache: 'no-store', // Force network fetch
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
     });
     
     if (!response.ok) {
@@ -37,16 +43,30 @@ export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fill
     // Save and trigger download
     const filledPdfBytes = await pdfDoc.save();
     const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = generateExportFilename({
+    
+    // Generate filename
+    const filename = generateExportFilename({
       date: data[0]?.days[0]?.date || new Date().toISOString().split('T')[0],
       crewNumber: crewInfo.crewNumber || '',
       fireName: crewInfo.fireName || '',
       fireNumber: crewInfo.fireNumber || '',
       type: 'PDF'
     });
+
+    // Store in IndexedDB
+    await storePDF(blob, {
+      filename,
+      date: data[0]?.days[0]?.date || new Date().toISOString().split('T')[0],
+      crewNumber: crewInfo.crewNumber || '',
+      fireName: crewInfo.fireName || '',
+      fireNumber: crewInfo.fireNumber || ''
+    });
+
+    // Trigger download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   } catch (error) {
