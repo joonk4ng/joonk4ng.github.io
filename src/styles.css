@@ -295,134 +295,53 @@ button:disabled {
 }
 
 .error-message {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  border-radius: 0.25rem;
 }
 
 .file-input {
-  border: 2px dashed #ddd;
-  padding: 1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.3s;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
 }
 
 .file-input:hover {
-  border-color: #4CAF50;
+  border-color: #999;
 }
 
-/* Stored PDFs Styles */
-.stored-pdfs {
-  margin-top: 2rem;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.stored-pdfs-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.stored-pdfs-header h3 {
-  margin: 0;
-  color: #2c3e50;
-}
-
-.refresh-btn {
-  padding: 0.5rem 1rem;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.refresh-btn:hover {
-  background-color: #2980b9;
-}
+/* Remove unused StoredPDFs styles */
 
 .pdf-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Signature Canvas Styles */
+.signature-canvas-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-}
-
-.pdf-list-header {
-  display: flex;
-  gap: 1rem;
-  padding: 0.5rem;
-  background: #f1f3f5;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-}
-
-.sort-btn {
-  padding: 0.5rem 1rem;
-  background: none;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: #495057;
-  transition: all 0.2s;
-  display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.sort-btn:hover {
-  background-color: #e9ecef;
-  border-color: #ced4da;
-}
-
-.sort-btn.active {
-  background-color: #e9ecef;
-  border-color: #3498db;
-  color: #3498db;
-  font-weight: 500;
-}
-
-.pdf-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 1rem;
   padding: 1rem;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.pdf-info {
-  flex: 1;
-}
-
-.pdf-info strong {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #2c3e50;
-}
-
-.pdf-info div {
-  font-size: 0.9rem;
-  color: #666;
-  margin: 0.2rem 0;
-}
-
-.pdf-actions {
+.signature-canvas-actions {
   display: flex;
   gap: 0.5rem;
+  justify-content: center;
 }
 
-.pdf-actions button {
+.signature-canvas-actions button {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -431,360 +350,20 @@ button:disabled {
   transition: background-color 0.2s;
 }
 
-.open-btn {
-  background-color: #2ecc71;
+.signature-canvas-actions .clear-btn {
+  background-color: #6c757d;
   color: white;
 }
 
-.open-btn:hover {
-  background-color: #27ae60;
+.signature-canvas-actions .clear-btn:hover {
+  background-color: #5a6268;
 }
 
-.download-btn {
-  background-color: #3498db;
+.signature-canvas-actions .save-btn {
+  background-color: #28a745;
   color: white;
 }
 
-.download-btn:hover {
-  background-color: #2980b9;
-}
-
-.delete-btn {
-  background-color: #e74c3c;
-  color: white;
-}
-
-.delete-btn:hover {
-  background-color: #c0392b;
-}
-
-/* PDF Editor Modal Styles */
-.pdf-editor-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.pdf-editor-content {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 1200px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.pdf-editor-header {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.pdf-editor-header h4 {
-  margin: 0;
-  color: #2c3e50;
-}
-
-.pdf-editor-body {
-  flex: 1;
-  overflow: auto;
-  padding: 1rem;
-  background: #f8f9fa;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.pdf-editor-body canvas {
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  cursor: crosshair;
-}
-
-.pdf-editor-footer {
-  padding: 1rem;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.close-btn {
-  padding: 0.5rem 1rem;
-  background-color: #95a5a6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.close-btn:hover {
-  background-color: #7f8c8d;
-}
-
-.error-message {
-  color: #e74c3c;
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background: #fde8e8;
-  border-radius: 4px;
-}
-
-.pdf-editor-actions {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.save-btn {
-  background-color: #2ecc71;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background-color 0.2s;
-}
-
-.save-btn:hover {
-  background-color: #27ae60;
-}
-
-/* Add these styles for the PDF viewer */
-.stored-pdfs-container {
-  display: flex;
-  gap: 1rem;
-  height: calc(100vh - 100px);
-  overflow: hidden;
-}
-
-.pdf-list-panel {
-  flex: 1;
-  min-width: 300px;
-  max-width: 400px;
-  overflow-y: auto;
-  padding-right: 1rem;
-}
-
-.pdf-viewer-panel {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.pdf-viewer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
-  background: #fff;
-}
-
-.pdf-viewer-title {
-  flex: 1;
-}
-
-.pdf-viewer-title h4 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1.1rem;
-}
-
-.pdf-viewer-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: nowrap;
-}
-
-.pdf-viewer-actions button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.draw-btn {
-  background-color: #3498db;
-  color: white;
-  min-width: 100px;
-}
-
-.draw-btn.active {
-  background-color: #e74c3c;
-}
-
-.draw-btn:hover {
-  background-color: #2980b9;
-}
-
-.draw-btn.active:hover {
-  background-color: #c0392b;
-}
-
-.clear-btn {
-  background-color: #95a5a6;
-  color: white;
-  min-width: 80px;
-}
-
-.clear-btn:hover {
-  background-color: #7f8c8d;
-}
-
-.save-btn {
-  background-color: #2ecc71;
-  color: white;
-  min-width: 80px;
-}
-
-.save-btn:hover {
-  background-color: #27ae60;
-}
-
-.pdf-viewer-content {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  background: #f8f9fa;
-}
-
-.pdf-viewer-content iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.pdf-item.selected {
-  background-color: #f0f7ff;
-  border-color: #0066cc;
-}
-
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-  .stored-pdfs-container {
-    flex-direction: column;
-    height: auto;
-    min-height: calc(100vh - 100px);
-  }
-
-  .pdf-list-panel {
-    max-width: none;
-    width: 100%;
-    padding-right: 0;
-  }
-
-  .pdf-viewer-panel {
-    height: 80vh;
-    width: 100%;
-  }
-
-  .pdf-list-header {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .sort-btn {
-    font-size: 0.9rem;
-    padding: 0.5rem;
-  }
-
-  .pdf-item {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .pdf-actions {
-    justify-content: flex-start;
-    gap: 0.5rem;
-  }
-
-  .pdf-viewer-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .pdf-viewer-title {
-    width: 100%;
-    text-align: center;
-  }
-
-  .pdf-viewer-actions {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .pdf-viewer-actions button {
-    flex: 1;
-    min-width: unset;
-    padding: 0.5rem;
-    font-size: 0.8rem;
-  }
-
-  .drawing-canvas {
-    touch-action: none;
-  }
-}
-
-.drawing-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  cursor: crosshair;
-  background: transparent;
-  touch-action: none; /* Prevents scrolling while drawing on touch devices */
-}
-
-.pdf-viewer-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.draw-btn {
-  background-color: #3498db;
-  color: white;
-}
-
-.draw-btn.active {
-  background-color: #e74c3c;
-}
-
-.draw-btn:hover {
-  background-color: #2980b9;
-}
-
-.draw-btn.active:hover {
-  background-color: #c0392b;
-}
-
-.clear-btn {
-  background-color: #95a5a6;
-  color: white;
-}
-
-.clear-btn:hover {
-  background-color: #7f8c8d;
+.signature-canvas-actions .save-btn:hover {
+  background-color: #218838;
 } 

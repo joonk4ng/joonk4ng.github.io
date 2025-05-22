@@ -13,26 +13,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Register service worker after app loads -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(registration => {
-              console.log('SW registered:', registration);
-              // Force update check
-              registration.update();
-            })
-            .catch(error => {
-              console.log('SW registration failed:', error);
-            });
-
-          // Handle updates
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            window.location.reload();
-          });
-        });
-      }
-    </script>
   </body>
 </html> 

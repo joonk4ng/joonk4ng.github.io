@@ -1,25 +1,51 @@
 import { openDB } from 'idb';
 
+// set database name
 const DB_NAME = 'ctr-pdf-storage';
+// set store name
 const STORE_NAME = 'pdfs';
-const DB_VERSION = 1;
+// set database version
+const DB_VERSION = 2; // Increment version for schema update
+
+interface PDFData {
+  id: string;
+  pdf: Blob;
+  preview: Blob | null;
+  metadata: {
+    filename: string;
+    date: string;
+    crewNumber: string;
+    fireName: string;
+    fireNumber: string;
+  };
+  timestamp: string;
+}
 
 // Initialize the database
 async function initDB() {
   console.log('Initializing IndexedDB...');
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      console.log('Upgrading database...');
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
+  return openDB<PDFData>(DB_NAME, DB_VERSION, {
+    upgrade(db, oldVersion) {
+      console.log('Upgrading database from version', oldVersion, 'to', DB_VERSION);
+      
+      // Create store if it doesn't exist (version 1)
+      if (oldVersion < 1) {
         console.log('Creating object store...');
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      
+      // Add preview field to existing records (version 2)
+      if (oldVersion < 2) {
+        console.log('Adding preview field to existing records...');
+        // No need to update existing records, they will get preview = null by default
+        // when accessed through TypeScript interface
       }
     },
   });
 }
 
 // Store a PDF in IndexedDB
-export async function storePDF(pdfBlob: Blob, metadata: {
+export async function storePDF(pdfBlob: Blob, pngPreview: Blob | null, metadata: {
   filename: string;
   date: string;
   crewNumber: string;
@@ -34,6 +60,7 @@ export async function storePDF(pdfBlob: Blob, metadata: {
     await db.put(STORE_NAME, {
       id,
       pdf: pdfBlob,
+      preview: pngPreview,
       metadata,
       timestamp: new Date().toISOString()
     });

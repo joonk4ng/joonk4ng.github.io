@@ -1,35 +1,33 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import * as pdfjsLib from 'pdfjs-dist';
 import './styles.css';
+import App from './App';
+
+// Configure PDF.js worker
+if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+}
 
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // Check if there's an existing service worker
-      const existingRegistration = await navigator.serviceWorker.getRegistration();
-      
-      if (existingRegistration) {
-        // If there's an update, wait for it to be installed
-        existingRegistration.addEventListener('updatefound', () => {
-          const newWorker = existingRegistration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed') {
-                console.log('New service worker installed, will activate on next load');
-              }
-            });
-          }
-        });
-      } else {
-        // Only register new service worker if none exists
-        const registration = await navigator.serviceWorker.register('./sw.js', {
-          type: 'module',
-          scope: './'
-        });
-        console.log('SW registered: ', registration);
-      }
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('SW registered: ', registration);
+
+      // Handle updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New content is available, but don't force reload
+              console.log('New content is available. Please refresh to update.');
+            }
+          });
+        }
+      });
     } catch (error) {
       console.error('SW registration failed: ', error);
     }

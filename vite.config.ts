@@ -6,9 +6,27 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import compression from 'vite-plugin-compression';
+import fs from 'fs-extra';
 // defines varaibles for determining current file location
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Copy PDF.js worker files to public directory
+const copyPdfWorker = () => ({
+  name: 'copy-pdf-worker',
+  buildStart() {
+    const workerSrc = resolve(__dirname, 'node_modules/pdfjs-dist/build/pdf.worker.mjs');
+    const workerDest = resolve(__dirname, 'public/pdf.worker.min.mjs');
+    
+    // Only copy if the file doesn't exist or is older than the source
+    if (!fs.existsSync(workerDest) || 
+        fs.statSync(workerSrc).mtime > fs.statSync(workerDest).mtime) {
+      fs.ensureDirSync(dirname(workerDest));
+      fs.copyFileSync(workerSrc, workerDest);
+      console.log('PDF.js worker file copied successfully');
+    }
+  }
+});
 
 // export Vite config object
 export default defineConfig({
@@ -17,6 +35,7 @@ export default defineConfig({
     react({
       jsxRuntime: 'automatic',
     }),
+    copyPdfWorker(),
     compression({
       algorithm: 'gzip',
       ext: '.gz',
@@ -46,7 +65,19 @@ export default defineConfig({
     headers: {
       'Cache-Control': 'public, max-age=31536000, immutable',
       'Vary': 'Accept-Encoding',
+      'Service-Worker-Allowed': '/'
     },
+    port: 5173,
+    middlewareMode: false,
+    fs: {
+      strict: false,
+      allow: ['..']
+    },
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173
+    }
   },
   build: {
     // specifies output directory for build files
@@ -60,10 +91,11 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html')
       },
       output: {
-        // disables manual chunking
+        // Configure chunks for better offline support
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          utils: ['xlsx', 'pdf-lib']
+          pdf: ['pdfjs-dist'],
+          xlsx: ['xlsx']
         },
         //naming convention for asset files
         assetFileNames: (assetInfo) => {
@@ -85,7 +117,7 @@ export default defineConfig({
           }
           return 'assets/[name]-[hash].js';
         }
-      },
+      }
     },
     // enables source map generation and debugs minified production code by mapping it back to source
     sourcemap: true,
@@ -95,15 +127,21 @@ export default defineConfig({
   publicDir: 'public',
   // configures how Vite resolves module imports
   resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx'],
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.mjs'],
     alias: {
       'react': resolve(__dirname, 'node_modules/react'),
       'react-dom': resolve(__dirname, 'node_modules/react-dom'),
+      'pdfjs-dist': resolve(__dirname, 'node_modules/pdfjs-dist')
     },
   },
   // configures dependency pre-bundling for improved performance
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: [
+      'react', 
+      'react-dom', 
+      'pdfjs-dist'
+    ],
+    exclude: []
   },
   // CSS handling configuration 
   css: {

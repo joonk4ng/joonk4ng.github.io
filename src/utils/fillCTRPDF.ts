@@ -1,13 +1,40 @@
+// Add type declaration at the top of the file
+declare global {
+  interface ImportMeta {
+    env: {
+      BASE_URL: string;
+      MODE: string;
+      DEV: boolean;
+      PROD: boolean;
+    }
+  }
+}
+
 import { PDFDocument } from 'pdf-lib';
 import { mapToPDFFields } from './pdfFieldMapper';
 import { generateExportFilename } from './filenameGenerator';
 import { storePDF } from './pdfStorage';
 
-// Fills the CTR PDF and triggers a download
-export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fillable_Edited.pdf') {
+interface PDFGenerationOptions {
+  downloadImmediately?: boolean;
+  returnBlob?: boolean;
+}
+
+// Fills the CTR PDF and either triggers a download or returns the PDF data
+export async function fillCTRPDF(
+  data: any[], 
+  crewInfo: any, 
+  options: PDFGenerationOptions = { downloadImmediately: true },
+  pdfUrl = '/CTR_Fillable_Edited.pdf'
+) {
   try {
+    // Ensure the PDF URL is absolute and includes base path
+    const basePath = import.meta.env.BASE_URL || '/';
+    const absolutePdfUrl = pdfUrl.startsWith('http') ? pdfUrl : `${basePath}${pdfUrl.startsWith('/') ? pdfUrl.slice(1) : pdfUrl}`;
+    
     // Add cache-busting query parameter and force network fetch
-    const urlWithCacheBust = `${pdfUrl}?t=${Date.now()}`;
+    const urlWithCacheBust = `${absolutePdfUrl}?t=${Date.now()}`;
+    
     const response = await fetch(urlWithCacheBust, {
       cache: 'no-store', // Force network fetch
       headers: {
@@ -17,6 +44,7 @@ export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fill
     });
     
     if (!response.ok) {
+      console.error('PDF fetch failed:', response.status, response.statusText);
       throw new Error(`Failed to fetch PDF: ${response.statusText}`);
     }
 
@@ -40,7 +68,7 @@ export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fill
       }
     });
 
-    // Save and trigger download
+    // Save PDF
     const filledPdfBytes = await pdfDoc.save();
     const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
     
@@ -54,7 +82,7 @@ export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fill
     });
 
     // Store in IndexedDB
-    await storePDF(blob, {
+    const pdfId = await storePDF(blob, null, {
       filename,
       date: data[0]?.days[0]?.date || new Date().toISOString().split('T')[0],
       crewNumber: crewInfo.crewNumber || '',
@@ -62,13 +90,23 @@ export async function fillCTRPDF(data: any[], crewInfo: any, pdfUrl = '/CTR_Fill
       fireNumber: crewInfo.fireNumber || ''
     });
 
-    // Trigger download
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Handle different output modes
+    if (options.downloadImmediately) {
+      // Trigger download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Return data based on options
+    if (options.returnBlob) {
+      return { blob, filename, pdfId };
+    }
+    
+    return { filename, pdfId };
   } catch (error) {
     console.error('Error filling PDF:', error);
     if (error instanceof Error) {

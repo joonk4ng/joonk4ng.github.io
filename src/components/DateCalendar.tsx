@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import './DateCalendar.css';
+import '../styles/DateCalendar.css';
 
+// DateCalendar object properties
 interface DateCalendarProps {
   savedDates: string[];
   onDateSelect: (dateRange: string) => void;
   onClose: () => void;
 }
 
+// Export function DateCalendar and properties
 export const DateCalendar: React.FC<DateCalendarProps> = ({ savedDates, onDateSelect, onClose }) => {
+  // Current date state
   const [currentDate, setCurrentDate] = useState(new Date());
+  // Selected date state
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  // Calendar days state
   const [calendarDays, setCalendarDays] = useState<Date[]>([]);
 
   // Generate calendar days for the current month
   useEffect(() => {
+    // Get the year, month, and first day of the current month
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);

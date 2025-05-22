@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { defaultData } from '../data/defaultData';
-import './MainTable.css';
+import '../styles/MainTable.css';
 import { fillCTRPDF } from '../utils/fillCTRPDF';
 import * as XLSX from 'xlsx';
 import { fillExcelTemplate } from '../utils/fillExcelTemplate';
@@ -11,7 +11,9 @@ import { mapExcelToData } from '../utils/excelMapping';
 import { CrewMember, CrewInfo, Day } from '../types/CTRTypes';
 import { calculateTotalHours } from '../utils/timeCalculations';
 import { DateCalendar } from './DateCalendar';
-import StoredPDFs from './StoredPDFs';
+import PDFGenerationViewer from './PDFGenerationViewer';
+import EnhancedPDFViewer from './EnhancedPDFViewer';
+import { storePDF } from '../utils/pdfStorage';
 
 // TypeScript interfaces
 interface EditingCell {
@@ -203,6 +205,15 @@ export default function MainTable() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showCustomDatePicker, setShowCustomDatePicker] = useState<number | null>(null);
 
+  const [showPDFViewer, setShowPDFViewer] = useState(false);
+  const [pdfId, setPdfId] = useState<string | null>(null);
+
+  // Add a new state to track PDFs for specific date ranges
+  const [pdfsByDateRange, setPdfsByDateRange] = useState<Record<string, string>>({});
+
+  // Add state for tracking if we're in signing mode
+  const [isSigningMode, setIsSigningMode] = useState(false);
+
   // Load saved dates on component mount
   useEffect(() => {
     loadSavedDates();
@@ -345,6 +356,7 @@ export default function MainTable() {
         fireName: '',
         fireNumber: ''
       });
+      setPdfId(null); // Reset PDF ID for new entry
       showNotification('New entry started', 'info');
       return;
     }
@@ -369,6 +381,9 @@ export default function MainTable() {
         const loadedTotalHours = calculateTotalHours(record.data);
         setLastSavedTotalHours(loadedTotalHours);
         setLastSavedCrewInfo({ ...record.crewInfo });
+        
+        // Set the PDF ID for this date range if it exists
+        setPdfId(pdfsByDateRange[dateRange] || null);
         
         showNotification('Data loaded successfully', 'success');
       }
@@ -602,53 +617,23 @@ export default function MainTable() {
 
   const handleExportPDF = async () => {
     try {
-      // Validate required data before attempting PDF generation
-      if (!days[0] || !days[1]) {
-        showNotification('Please select both dates before generating PDF.', 'warning');
-        return;
-      }
+      // Generate PDF without immediate download
+      const result = await fillCTRPDF(data, crewInfo, { 
+        downloadImmediately: false,
+        returnBlob: false
+      });
 
-      if (!crewInfo.crewNumber || !crewInfo.fireName || !crewInfo.fireNumber) {
-        showNotification('Please fill in all crew and fire information before generating PDF.', 'warning');
-        return;
-      }
-
-      // Check if there's any crew member data
-      const hasCrewData = data.some(member => 
-        member.name && member.classification && 
-        member.days.some(day => day.on || day.off)
-      );
-
-      if (!hasCrewData) {
-        showNotification('Please enter at least one crew member\'s information before generating PDF.', 'warning');
-        return;
-      }
-
-      showNotification('Generating PDF...', 'info');
-      
-      try {
-        await fillCTRPDF(data, crewInfo, undefined);
-        showNotification('PDF generated successfully!', 'success');
-      } catch (error) {
-        // error handling
-        console.error('Error generating PDF:', error);
-        let errorMessage = 'Failed to generate PDF. ';
-        
-        if (error instanceof Error) {
-          if (error.message.includes('network') || error.message.includes('fetch')) {
-            errorMessage += 'Please check your internet connection and try again.';
-          } else if (error.message.includes('cache')) {
-            errorMessage += 'The PDF template could not be loaded. Please try refreshing the page.';
-          } else {
-            errorMessage += 'An unexpected error occurred. Please try again.';
-          }
-        }
-        
-        showNotification(errorMessage, 'error');
-      }
+      // Store the PDF ID for the current date range
+      const currentDateRange = `${days[0]} to ${days[1]}`;
+      setPdfsByDateRange(prev => ({
+        ...prev,
+        [currentDateRange]: result.pdfId
+      }));
+      setPdfId(result.pdfId);
+      showNotification('PDF generated successfully. Click below to view and sign.', 'success');
     } catch (error) {
-      console.error('Error in PDF generation process:', error);
-      showNotification('An unexpected error occurred while preparing the PDF.', 'error');
+      console.error('Error exporting PDF:', error);
+      showNotification('Failed to export PDF. Please try again.', 'error');
     }
   };
 
@@ -761,6 +746,12 @@ export default function MainTable() {
 
     try {
       await ctrDataService.deleteRecord(selectedDate);
+      // Remove the PDF ID for this date range
+      setPdfsByDateRange(prev => {
+        const newPdfsByDateRange = { ...prev };
+        delete newPdfsByDateRange[selectedDate];
+        return newPdfsByDateRange;
+      });
       await loadSavedDates();
       setSelectedDate('');
       setCurrentDateIndex(-1);
@@ -772,6 +763,7 @@ export default function MainTable() {
         fireNumber: ''
       });
       setDays(['', '']);
+      setPdfId(null);
       showNotification('Entry removed successfully', 'success');
     } catch (error) {
       console.error('Error removing entry:', error);
@@ -878,7 +870,19 @@ export default function MainTable() {
       <div className="ctr-actions">
         <input type="file" accept=".xlsx" onChange={handleExcelUpload} />
         <button className="ctr-btn" onClick={handleExportExcel}>Export Excel</button>
-        <button className="ctr-btn" onClick={handleExportPDF}>Export to PDF</button>
+        <button className="ctr-btn" onClick={handleExportPDF}>Save to PDF</button>
+        {pdfId && (
+          <button 
+            className="ctr-btn sign-btn" 
+            onClick={() => {
+              setIsSigningMode(true);
+              setShowPDFViewer(true);
+            }}
+            style={{ background: '#4caf50' }}
+          >
+            Sign PDF
+          </button>
+        )}
         {showSaveDefault && (
           <button className="ctr-btn" onClick={handleSaveDefault} style={{ background: '#388e3c' }}>Save as Default</button>
         )}
@@ -1072,8 +1076,64 @@ export default function MainTable() {
         </div>
       )}
 
-      {/* Add StoredPDFs component */}
-      <StoredPDFs />
+      {showPDFViewer && pdfId && (
+        <div className="modal">
+          <div className="modal-content pdf-modal">
+            <button 
+              className="modal-close-btn"
+              onClick={() => {
+                setShowPDFViewer(false);
+                setIsSigningMode(false);
+              }}
+            >
+              ×
+            </button>
+            <EnhancedPDFViewer
+              pdfId={pdfId}
+              readOnly={false}
+              crewInfo={{
+                crewNumber: crewInfo.crewNumber,
+                fireName: crewInfo.fireName,
+                fireNumber: crewInfo.fireNumber
+              }}
+              date={days[0]}
+              onSave={async (blob) => {
+                try {
+                  // Store the annotated version with the same ID to overwrite the original
+                  const currentDateRange = `${days[0]} to ${days[1]}`;
+                  const newPdfId = await storePDF(blob, null, {  // Pass null as pngPreview
+                    filename: generateExportFilename({
+                      date: days[0],
+                      crewNumber: crewInfo.crewNumber,
+                      fireName: crewInfo.fireName,
+                      fireNumber: crewInfo.fireNumber,
+                      type: 'PDF'
+                    }),
+                    date: days[0],
+                    crewNumber: crewInfo.crewNumber,
+                    fireName: crewInfo.fireName,
+                    fireNumber: crewInfo.fireNumber
+                  });
+
+                  // Update the PDF ID in our state
+                  setPdfsByDateRange(prev => ({
+                    ...prev,
+                    [currentDateRange]: newPdfId
+                  }));
+                  setPdfId(newPdfId);
+                  
+                  setShowPDFViewer(false);
+                  setIsSigningMode(false);
+                  showNotification('PDF saved with signature', 'success');
+                } catch (error) {
+                  console.error('Error saving signed PDF:', error);
+                  showNotification('Failed to save signed PDF', 'error');
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

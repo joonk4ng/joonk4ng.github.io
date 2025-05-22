@@ -1,8 +1,14 @@
-const CACHE_NAME = 'pwa-pdf-cache-v2';
+const CACHE_NAME = 'pwa-pdf-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './pdf.worker.min.mjs',
+  './assets/main-*.js',
+  './assets/vendor-*.js',
+  './assets/pdf-*.js',
+  './assets/xlsx-*.js',
+  './assets/index-*.css'
 ];
 
 // Helper function to handle failed requests
@@ -20,52 +26,43 @@ const handleFetchError = (error) => {
   );
 };
 
-// Helper function to determine if a request should be cached
-const shouldCache = (request) => {
+function shouldCache(request) {
   const url = new URL(request.url);
-  // Don't cache WebSocket connections
-  if (url.protocol === 'ws:' || url.protocol === 'wss:') {
-    return false;
-  }
-  // Don't cache browser-sync requests
-  if (url.pathname.includes('browser-sync')) {
-    return false;
-  }
-  // Don't cache PDF files
-  if (url.pathname.endsWith('.pdf')) {
-    return false;
-  }
-  return true;
-};
+  // Cache local assets and API requests
+  return url.origin === location.origin || url.pathname.startsWith('/api/');
+}
 
 self.addEventListener('install', (event) => {
-  // Skip waiting only if this is the first install
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      if (cacheNames.length === 0) {
-        self.skipWaiting();
-      }
-      return caches.open(CACHE_NAME)
-        .then((cache) => {
-          console.log('Opened cache');
-          return Promise.allSettled(
-            urlsToCache.map(url => 
-              cache.add(url).catch(error => {
-                console.error(`Failed to cache ${url}:`, error);
-                return Promise.resolve();
-              })
-            )
-          );
-        });
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache.filter(url => !url.includes('*')))
+          .then(() => self.skipWaiting());
+      })
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      self.clients.claim()
+    ])
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Don't handle non-GET requests or WebSocket connections
-  if (event.request.method !== 'GET' || !shouldCache(event.request)) {
-    return;
-  }
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request)
@@ -76,51 +73,34 @@ self.addEventListener('fetch', (event) => {
 
         return fetch(event.request.clone())
           .then(response => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+            if (!response || response.status !== 200) {
               return response;
             }
 
-            // Clone the response
             const responseToCache = response.clone();
-
-            if (shouldCache(event.request)) {
-              caches.open(CACHE_NAME)
-                .then((cache) => {
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                // Only cache same-origin requests
+                if (event.request.url.startsWith(self.location.origin)) {
                   cache.put(event.request, responseToCache);
-                })
-                .catch(error => {
-                  console.error('Failed to cache response:', error);
-                });
-            }
+                }
+              });
 
             return response;
           })
-          .catch(handleFetchError);
-      })
-  );
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        // Only claim clients if there are no other active service workers
-        return self.clients.matchAll().then(clients => {
-          if (clients.length === 0) {
-            return self.clients.claim();
-          }
-        });
+          .catch(() => {
+            // Return a fallback response if offline
+            return new Response(
+              JSON.stringify({
+                error: 'Network request failed',
+                message: 'The application is currently offline'
+              }),
+              {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+              }
+            );
+          });
       })
   );
 }); 
