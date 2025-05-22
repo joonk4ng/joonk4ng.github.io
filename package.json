@@ -10,10 +10,12 @@
     "generate-icons": "node scripts/generate-icons.js"
   },
   "dependencies": {
+    "@types/nodemailer": "^6.4.17",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-signature-canvas": "^1.0.7",
     "idb": "^7.1.1",
     "jspdf": "^3.0.1",
+    "nodemailer": "^7.0.3",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.2.133",
     "react": "^18.2.0",
