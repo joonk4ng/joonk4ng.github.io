@@ -31,18 +31,11 @@ interface NotificationState {
 const STORAGE_KEY = 'ctr-table-data';
 
 function saveData(data: CrewMember[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  // No longer needed since we're using IndexedDB
 }
 
 function loadData(): CrewMember[] {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return defaultData;
-    }
-  }
+  // No longer needed since we're using IndexedDB
   return defaultData;
 }
 
@@ -148,19 +141,11 @@ function deepEqual(obj1: any, obj2: any): boolean {
 }
 
 export default function MainTable() {
-  const [data, setData] = useState<CrewMember[]>(() => {
-    const loadedData = loadData();
-    return Array.isArray(loadedData) ? loadedData : defaultData;
-  });
+  const [data, setData] = useState<CrewMember[]>(defaultData);
   
-  const [dayCount, setDayCount] = useState(() => {
-    return data[0]?.days?.length || 2;
-  });
+  const [dayCount, setDayCount] = useState(2);
   
-  const [days, setDays] = useState<string[]>(() => {
-    const loadedDates = data[0]?.days?.map(d => d.date);
-    return Array.isArray(loadedDates) && loadedDates.length === 2 ? loadedDates : ['', ''];
-  });
+  const [days, setDays] = useState<string[]>(['', '']);
   const [showSaveDefault, setShowSaveDefault] = useState(false);
   const [crewInfo, setCrewInfo] = useState<CrewInfo>({
     crewName: '',
@@ -216,22 +201,34 @@ export default function MainTable() {
 
   // Load saved dates on component mount
   useEffect(() => {
-    loadSavedDates();
+    const initializeApp = async () => {
+      await loadSavedDates();
+      setCurrentDateIndex(-1);
+      // Clear any localStorage data to prevent conflicts
+      localStorage.removeItem(STORAGE_KEY);
+    };
+    initializeApp();
   }, []);
 
   // Update lastSavedState when data is loaded
   useEffect(() => {
-    setLastSavedState({
-      data: [...data],
-      crewInfo: { ...crewInfo },
-      days: [...days]
-    });
-  }, []);
+    // Only update lastSavedState if we have actual data (not just the initial state)
+    if (data !== defaultData) {
+      setLastSavedState({
+        data: [...data],
+        crewInfo: { ...crewInfo },
+        days: [...days]
+      });
+    }
+  }, [data, crewInfo, days]);
 
   // Update lastSavedTotalHours when data is loaded
   useEffect(() => {
-    setLastSavedTotalHours(totalHours);
-  }, []);
+    // Only update lastSavedTotalHours if we have actual data (not just the initial state)
+    if (data !== defaultData) {
+      setLastSavedTotalHours(totalHours);
+    }
+  }, [data, totalHours]);
 
   // Replace the existing useEffect for change tracking
   useEffect(() => {
@@ -333,6 +330,30 @@ export default function MainTable() {
   };
 
   const handleDateSelect = async (dateRange: string) => {
+    if (!dateRange || dateRange === "") {
+      // If no date range is selected, reset to new entry state
+      setData(defaultData);
+      setCrewInfo({
+        crewName: '',
+        crewNumber: '',
+        fireName: '',
+        fireNumber: ''
+      });
+      setDays(['', '']);
+      setSelectedDate('');
+      setCurrentDateIndex(-1);
+      setHasUnsavedChanges(false);
+      setLastSavedTotalHours(0);
+      setLastSavedCrewInfo({
+        crewName: '',
+        crewNumber: '',
+        fireName: '',
+        fireNumber: ''
+      });
+      setPdfId(null);
+      return;
+    }
+
     if (dateRange === "new") {
       if (hasUnsavedChanges) {
         showNotification('You have unsaved changes. Please save or discard them before starting a new entry.', 'warning');
@@ -356,7 +377,7 @@ export default function MainTable() {
         fireName: '',
         fireNumber: ''
       });
-      setPdfId(null); // Reset PDF ID for new entry
+      setPdfId(null);
       showNotification('New entry started', 'info');
       return;
     }
@@ -369,15 +390,18 @@ export default function MainTable() {
     try {
       const record = await ctrDataService.getRecord(dateRange);
       if (record) {
-        setData(record.data);
-        setCrewInfo(record.crewInfo);
         const [date1, date2] = record.dateRange.split(' to ');
+        // Set dates first to prevent refresh issues
         setDays([date1, date2]);
         setSelectedDate(dateRange);
         setCurrentDateIndex(savedDates.indexOf(dateRange));
+        
+        // Then set the data and crew info
+        setData(record.data);
+        setCrewInfo(record.crewInfo);
         setHasUnsavedChanges(false);
         
-        // Update lastSavedTotalHours and lastSavedCrewInfo with the loaded data
+        // Update saved state tracking
         const loadedTotalHours = calculateTotalHours(record.data);
         setLastSavedTotalHours(loadedTotalHours);
         setLastSavedCrewInfo({ ...record.crewInfo });
@@ -392,10 +416,6 @@ export default function MainTable() {
       showNotification('Failed to load data. Please try again.', 'error');
     }
   };
-
-  useEffect(() => {
-    saveData(data);
-  }, [data]);
 
   const handleCellDoubleTap = (rowIdx: number, field: string, dayIdx?: number) => {
     const now = Date.now();
@@ -551,13 +571,11 @@ export default function MainTable() {
 
   const handleResetToDefault = () => {
     setData(defaultData);
-    saveData(defaultData);
     setShowSaveDefault(false);
     showNotification('Restored to original default data!', 'info');
   };
 
   const handleSaveDefault = () => {
-    saveData(data);
     setShowSaveDefault(false);
     showNotification('Current table saved as default!', 'success');
   };
@@ -791,7 +809,6 @@ export default function MainTable() {
             className="ctr-select"
           >
             <option value="new">New Entry</option>
-            <option value="">Select a saved date range...</option>
             {savedDates.map(dateRange => {
               const [date1, date2] = dateRange.split(' to ');
               return (
