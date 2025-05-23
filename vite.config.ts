@@ -63,20 +63,21 @@ export default defineConfig({
   server: {
     open: true,
     headers: {
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'no-store',  // Prevent caching during development
       'Vary': 'Accept-Encoding',
       'Service-Worker-Allowed': '/'
     },
     port: 5173,
     middlewareMode: false,
+    hmr: true,  // Enable HMR for better development experience
     fs: {
-      strict: false,
-      allow: ['..']
+      strict: true,
+      allow: []
     },
-    hmr: {
-      protocol: 'ws',
-      host: 'localhost',
-      port: 5173
+    watch: {
+      usePolling: true,  // Enable polling for more reliable file watching
+      interval: 1000,    // Check for changes every second
+      ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**']
     }
   },
   build: {

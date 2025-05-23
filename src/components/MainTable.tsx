@@ -203,9 +203,12 @@ export default function MainTable() {
   useEffect(() => {
     const initializeApp = async () => {
       await loadSavedDates();
-      setCurrentDateIndex(-1);
-      // Clear any localStorage data to prevent conflicts
-      localStorage.removeItem(STORAGE_KEY);
+      // Load the first available date range if any exist
+      const dateRanges = await ctrDataService.getAllDateRanges();
+      if (dateRanges.length > 0) {
+        const firstDateRange = dateRanges[0];
+        await handleDateSelect(firstDateRange);
+      }
     };
     initializeApp();
   }, []);
@@ -808,7 +811,6 @@ export default function MainTable() {
             onChange={(e) => handleDateSelect(e.target.value)}
             className="ctr-select"
           >
-            <option value="new">New Entry</option>
             {savedDates.map(dateRange => {
               const [date1, date2] = dateRange.split(' to ');
               return (
@@ -817,6 +819,7 @@ export default function MainTable() {
                 </option>
               );
             })}
+            <option value="new">+ New Entry</option>
           </select>
           <button 
             className="ctr-btn calendar-btn"
