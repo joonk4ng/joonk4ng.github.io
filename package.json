@@ -2,13 +2,16 @@
   "name": "firefighter-shift-pwa",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "scripts": {
     "dev": "vite --force",
     "dev:clean": "rimraf node_modules/.vite && vite --force",
     "build": "npm run generate-icons && vite build",
     "preview": "rimraf node_modules/.vite && vite preview --host 0.0.0.0 --port 4173",
     "start": "vite preview --host 0.0.0.0 --port 4173",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@types/nodemailer": "^6.4.17",
@@ -34,6 +37,7 @@
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.4.1",
     "fs-extra": "^11.3.0",
+    "gh-pages": "^6.3.0",
     "rimraf": "^6.0.1",
     "sharp": "^0.32.1",
     "typescript": "^5.0.0",
