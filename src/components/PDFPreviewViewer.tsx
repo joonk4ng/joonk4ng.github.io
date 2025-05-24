@@ -93,6 +93,54 @@ const PDFPreviewViewer: React.FC<PDFPreviewViewerProps> = ({ pdfId, onLoad, clas
     }
   };
 
+  const handlePrint = async () => {
+    try {
+      const pdfData = await getPDF(pdfId);
+      if (!pdfData) {
+        throw new Error('PDF not found in storage');
+      }
+
+      // Create a URL for the PDF blob
+      const url = URL.createObjectURL(pdfData.pdf);
+      
+      // Create a temporary iframe for printing
+      const printFrame = document.createElement('iframe');
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      
+      document.body.appendChild(printFrame);
+
+      // Set the iframe source to the PDF URL
+      printFrame.src = url;
+
+      // Wait for the PDF to load in the iframe
+      printFrame.onload = () => {
+        try {
+          // Try to print
+          printFrame.contentWindow?.print();
+          
+          // Remove the iframe after printing
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+            URL.revokeObjectURL(url);
+          }, 1000);
+        } catch (err) {
+          console.error('Error during print:', err);
+          document.body.removeChild(printFrame);
+          URL.revokeObjectURL(url);
+          setError('Failed to print PDF');
+        }
+      };
+    } catch (error) {
+      console.error('Error preparing PDF for print:', error);
+      setError(error instanceof Error ? error.message : 'Failed to prepare PDF for printing');
+    }
+  };
+
   if (loading) {
     return <div>Loading preview...</div>;
   }
@@ -120,25 +168,40 @@ const PDFPreviewViewer: React.FC<PDFPreviewViewerProps> = ({ pdfId, onLoad, clas
             alt="PDF Preview" 
             style={{ 
               maxWidth: '100%', 
-              maxHeight: 'calc(100% - 50px)', // Leave space for the button
+              maxHeight: 'calc(100% - 50px)', // Leave space for the buttons
               objectFit: 'contain' 
             }} 
           />
-          <button 
-            onClick={handleDownloadPDF}
-            className="download-pdf-button"
-            style={{
-              marginTop: '10px',
-              padding: '8px 16px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Download PDF
-          </button>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <button 
+              onClick={handleDownloadPDF}
+              className="download-pdf-button"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Download PDF
+            </button>
+            <button 
+              onClick={handlePrint}
+              className="print-pdf-button"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Print PDF
+            </button>
+          </div>
         </>
       )}
     </div>

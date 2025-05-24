@@ -80,6 +80,20 @@ export default defineConfig({
       ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**']
     }
   },
+  // Add preview configuration
+  preview: {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store',
+      'Vary': 'Accept-Encoding',
+      'Service-Worker-Allowed': '/'
+    },
+    port: 4173,
+    strictPort: true,
+    open: true,
+  },
   build: {
     // specifies output directory for build files
     outDir: 'dist',

@@ -1,3 +1,4 @@
+// React component for the enhanced PDF viewer
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { getPDF } from '../utils/pdfStorage';
@@ -7,7 +8,9 @@ import { generateExportFilename } from '../utils/filenameGenerator';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+  // Set the PDF.js worker source to the local file in public directory with version
+  const workerVersion = '5.2.133'; // Match this with your pdfjs-dist version
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdfjskit/pdfjs/build/pdf.worker.mjs?v=${workerVersion}`;
 }
 
 // Configure PDF.js options for small PDFs
@@ -23,11 +26,17 @@ const pdfOptions = {
   standardFontDataUrl: undefined  // Don't try to load external fonts
 };
 
+// Defines properties for the EnhancedPDFViewer component
 interface EnhancedPDFViewerProps {
+  // PDF ID - unique identifier for the PDF
   pdfId?: string;
+  // Callback function for saving the PDF
   onSave?: (pdfData: Blob, previewImage: Blob) => void;
+  // Class name for the component
   className?: string;
+  // Style for the component
   style?: React.CSSProperties;
+  // Read only state - whether the component is read only
   readOnly?: boolean;
   crewInfo?: {
     crewNumber: string;
@@ -289,6 +298,106 @@ const EnhancedPDFViewer: React.FC<EnhancedPDFViewerProps> = ({
     }
   };
 
+  const handlePrint = async () => {
+    try {
+      if (!pdfDocRef.current) {
+        throw new Error('PDF document not loaded');
+      }
+
+      if (!canvasRef.current || !containerRef.current) {
+        throw new Error('PDF viewer not properly initialized');
+      }
+
+      // Create and append print-specific styles
+      const style = document.createElement('style');
+      style.id = 'pdf-print-style';
+      style.textContent = `
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          .enhanced-pdf-viewer {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          .enhanced-pdf-viewer .toolbar,
+          .enhanced-pdf-viewer .draw-canvas {
+            display: none !important;
+          }
+          .enhanced-pdf-viewer .pdf-canvas {
+            visibility: visible !important;
+            width: 100% !important;
+            height: auto !important;
+            display: block !important;
+            page-break-after: avoid !important;
+          }
+          @page {
+            size: auto;
+            margin: 0mm;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Store current scroll position and zoom
+      const container = containerRef.current;
+      const originalScroll = {
+        top: container.scrollTop,
+        left: container.scrollLeft
+      };
+
+      try {
+        // Ensure the PDF is rendered at optimal print quality
+        const page = await pdfDocRef.current.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for print quality
+        
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        
+        if (!context) {
+          throw new Error('Could not get canvas context');
+        }
+
+        // Update canvas dimensions for print
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // Render at high quality
+        await page.render({
+          canvasContext: context,
+          viewport: viewport
+        }).promise;
+
+        // Print
+        window.print();
+
+      } finally {
+        // Clean up print styles
+        const printStyle = document.getElementById('pdf-print-style');
+        if (printStyle) {
+          printStyle.remove();
+        }
+
+        // Restore original scroll position
+        if (container) {
+          container.scrollTop = originalScroll.top;
+          container.scrollLeft = originalScroll.left;
+        }
+
+        // Re-render at normal quality if needed
+        renderPDF(pdfDocRef.current);
+      }
+
+    } catch (err) {
+      console.error('Error printing PDF:', err);
+      setError(err instanceof Error ? err.message : 'Failed to print PDF.');
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     let currentPdf: pdfjsLib.PDFDocumentProxy | null = null;
@@ -387,6 +496,21 @@ const EnhancedPDFViewer: React.FC<EnhancedPDFViewerProps> = ({
             }}
           >
             Download PDF
+          </button>
+          <button 
+            onClick={handlePrint} 
+            className="print-btn"
+            style={{
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              marginLeft: '8px'
+            }}
+          >
+            Print PDF
           </button>
         </div>
       )}
