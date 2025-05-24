@@ -2,7 +2,7 @@
   "name": "firefighter-shift-pwa",
   "version": "0.1.0",
   "private": true,
-  "homepage": ".",
+  "homepage": "https://joonk4ng.github.io",
   "scripts": {
     "dev": "vite --force",
     "dev:clean": "rimraf node_modules/.vite && vite --force",
@@ -11,7 +11,7 @@
     "start": "vite preview --host 0.0.0.0 --port 4173",
     "generate-icons": "node scripts/generate-icons.js",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -b main"
   },
   "dependencies": {
     "@types/nodemailer": "^6.4.17",
