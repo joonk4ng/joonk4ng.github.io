@@ -65,7 +65,8 @@ export default defineConfig({
     headers: {
       'Cache-Control': 'no-store',  // Prevent caching during development
       'Vary': 'Accept-Encoding',
-      'Service-Worker-Allowed': '/'
+      'Service-Worker-Allowed': '/',
+      'Content-Type': 'application/javascript'
     },
     port: 5173,
     middlewareMode: false,
